@@ -37,11 +37,10 @@ func TestDVarGen(t *testing.T) {
 			Path: dname,
 			Perm: os.ModePerm,
 		}
-		err := GenerateAs(vDesc, conf)
+		err := New().GenerateAs(vDesc, conf)
 		if err != nil {
 			t.Fatal(err)
 		}
-
 		if _, err := os.Stat(filepath(conf.Path, vDesc)); err != nil {
 			t.Error("file was not generated")
 		}
@@ -53,7 +52,7 @@ func TestDVarGen(t *testing.T) {
 			Varname: "m",
 			Package: "testdata",
 		}
-		err := Generate(vDesc)
+		err := New().Generate(vDesc)
 		if err != ErrSubdir {
 			t.Fatal(err)
 		}

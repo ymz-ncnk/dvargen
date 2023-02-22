@@ -5,6 +5,8 @@ import (
 	"go/format"
 	"os"
 	template_mod "text/template"
+
+	persistor_mod "github.com/ymz-ncnk/persistor"
 )
 
 const template = "" +
@@ -29,22 +31,38 @@ var DefConf = Conf{
 	Perm: 0755,
 }
 
+// New creates a new DVarGen.
+func New() DVarGen {
+	return NewWith(persistor_mod.NewHarDrivePersistor())
+}
+
+// New creates a new configurable DVarGen.
+func NewWith(persistor persistor_mod.Persistor) DVarGen {
+	return DVarGen{persistor}
+}
+
+// DVarGen generates a map variable initialized with the contents of the
+// directory.
+type DVarGen struct {
+	persistor persistor_mod.Persistor
+}
+
 // Generate generates a file with Golang source code, which initializes a
 // map variable with directory content. Each key of this map is a file name,
 // and value - file data.
 // Uses DefConf.
-func Generate(vDesc DVarDesc) error {
-	return GenerateAs(vDesc, DefConf)
+func (dVarGen DVarGen) Generate(vDesc DVarDesc) error {
+	return dVarGen.GenerateAs(vDesc, DefConf)
 }
 
 // GenerateAs performs like generate. With help of this method you can configure
 // the generation process.
-func GenerateAs(vDesc DVarDesc, conf Conf) error {
-	m, err := makeMap(vDesc.Dir)
+func (dVarGen DVarGen) GenerateAs(vDesc DVarDesc, conf Conf) error {
+	m, err := dVarGen.makeMap(vDesc.Dir)
 	if err != nil {
 		return err
 	}
-	data, err := generate(vDesc, m)
+	data, err := dVarGen.generate(vDesc, m)
 	if err != nil {
 		panic(err)
 	}
@@ -55,7 +73,8 @@ func GenerateAs(vDesc DVarDesc, conf Conf) error {
 	return nil
 }
 
-func generate(vDesc DVarDesc, m map[string]string) ([]byte, error) {
+func (dVarGen DVarGen) generate(vDesc DVarDesc, m map[string]string) ([]byte,
+	error) {
 	tmpl, err := template_mod.New("base").Parse(template)
 	if err != nil {
 		return nil, err
@@ -76,7 +95,7 @@ func generate(vDesc DVarDesc, m map[string]string) ([]byte, error) {
 	return format.Source(buf.Bytes())
 }
 
-func makeMap(dir string) (map[string]string, error) {
+func (dVarGen DVarGen) makeMap(dir string) (map[string]string, error) {
 	var (
 		data     []byte
 		filename string
